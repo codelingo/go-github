@@ -733,6 +733,19 @@ type Error struct {
 	Message  string `json:"message"`  // Message describing the error. Errors with Code == "custom" will always have this set.
 }
 
+func (e *Error) UnmarshalJSON(b []byte) error {
+    var s string
+    if err := json.Unmarshal(b, &s); err == nil {
+        e.Resource = "(unknown)"
+        e.Field = "(unknown)"
+        e.Code = "custom"
+        e.Message = s
+        return nil
+    }
+    type Alias Error
+    return json.Unmarshal(b, (*Alias)(e))
+}
+
 func (e *Error) Error() string {
 	return fmt.Sprintf("%v error caused by %v field on %v resource",
 		e.Code, e.Field, e.Resource)
