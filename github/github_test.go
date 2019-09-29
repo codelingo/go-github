@@ -862,6 +862,34 @@ func TestCheckResponse(t *testing.T) {
 	}
 }
 
+// handle errors returned as plain strings
+func TestCheckResponse_errorStrings(t *testing.T) {
+	res := &http.Response{
+		Request:    &http.Request{},
+		StatusCode: http.StatusBadRequest,
+		Body: ioutil.NopCloser(strings.NewReader(`{"message":"m",
+			"errors": ["e1", "e2"]}`)),
+	}
+	err := CheckResponse(res).(*ErrorResponse)
+
+	if err == nil {
+		t.Errorf("Expected error response.")
+	}
+
+	want := &ErrorResponse{
+		Response: res,
+		Message:  "m",
+        Errors:   []Error{{
+            Resource: "(unknown)", Field: "(unknown)", Code: "custom", Message: "e1",
+        }, {
+            Resource: "(unknown)", Field: "(unknown)", Code: "custom", Message: "e2",
+        }},
+	}
+	if !reflect.DeepEqual(err, want) {
+		t.Errorf("Error = %#v, want %#v", err, want)
+	}
+}
+
 // ensure that we properly handle API errors that do not contain a response body
 func TestCheckResponse_noBody(t *testing.T) {
 	res := &http.Response{
